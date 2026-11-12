@@ -8,7 +8,7 @@ import os
 import requests
 
 RAW = "data/raw"
-EPSS_DIR = os.path.join(RAW, "19th_Feb")
+EPSS_DIR = os.path.join(RAW, "epss_decision_dates")
 DATES = ["2022-02-19", "2023-02-19", "2024-02-19", "2025-02-19", "2026-02-19"]
 EPSS_URL = "https://epss.empiricalsecurity.com/epss_scores-{d}.csv.gz"
 KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
