@@ -1,0 +1,2 @@
+decision_dates_in_panel,available_decision_dates,missing_expected_decision_dates,nvd_latest_year_feed,nvd_2026_feed_missing,overall_positive_rows,panel_rows,unique_cves_across_dates,interpretation
+10,2022-02-19;2022-08-19;2023-02-19;2023-08-19;2024-02-19;2024-08-19;2025-02-19;2025-08-19;2026-02-19;2026-08-19,,2026,False,109,934180,206865,All planned decision-date files are present.

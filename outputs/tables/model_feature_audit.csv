@@ -1,0 +1,34 @@
+feature,included,reason
+attack_complexity,False,Current NVD value; excluded to prevent temporal leakage
+attack_complexity_asof,True,Included as a pre-decision feature
+attack_vector,False,Current NVD value; excluded to prevent temporal leakage
+attack_vector_asof,True,Included as a pre-decision feature
+availability_impact,False,Current NVD value; excluded to prevent temporal leakage
+availability_impact_asof,True,Included as a pre-decision feature
+confidentiality_impact,False,Current NVD value; excluded to prevent temporal leakage
+confidentiality_impact_asof,True,Included as a pre-decision feature
+cve_age_days,True,Included as a pre-decision feature
+cvss_exploitability_score,False,Current NVD value; excluded to prevent temporal leakage
+cvss_impact_score,False,Current NVD value; excluded to prevent temporal leakage
+cvss_score,False,Current NVD value; excluded to prevent temporal leakage
+cvss_severity,False,Current NVD value; excluded to prevent temporal leakage
+cvss_severity_asof,True,Included as a pre-decision feature
+cvss_v3,True,Included as a pre-decision feature
+cvss_version,False,Current NVD value; excluded to prevent temporal leakage
+cvss_version_asof,True,Included as a pre-decision feature
+decision_date,False,Split metadata; excluded from model inputs
+epss_at_decision,True,Included only in EPSS model feature set
+epss_current,False,Target or outcome source; excluded from model inputs
+epss_model_version,False,Split metadata; excluded from model inputs
+epss_percentile_at_decision,True,Included only in EPSS model feature set
+integrity_impact,False,Current NVD value; excluded to prevent temporal leakage
+integrity_impact_asof,True,Included as a pre-decision feature
+kev_30d_label,False,Target or outcome source; excluded from model inputs
+kev_date_added,False,Target or outcome source; excluded from model inputs
+privileges_required,False,Current NVD value; excluded to prevent temporal leakage
+privileges_required_asof,True,Included as a pre-decision feature
+scope,False,Current NVD value; excluded to prevent temporal leakage
+scope_asof,True,Included as a pre-decision feature
+top_cwe,False,Current NVD value; excluded to prevent temporal leakage
+user_interaction,False,Current NVD value; excluded to prevent temporal leakage
+user_interaction_asof,True,Included as a pre-decision feature

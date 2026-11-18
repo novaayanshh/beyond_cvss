@@ -1,0 +1,71 @@
+column,source,type,description,model_input
+cve_id,NVD,string,Normalized CVE identifier,No
+published_date,NVD,date,NVD publication date,No
+last_modified_date,NVD,date,Last modified date,No
+vuln_status,NVD,categorical,Vuln status,No
+cvss_version,NVD,numeric,Cvss version,No
+cvss_score,NVD current record,numeric,Current NVD score retained for audit only; never used in rankings or models,No
+cvss_severity,NVD,categorical,Cvss severity,No
+cvss_vector,NVD,categorical,Cvss vector,No
+attack_vector,NVD,categorical,Attack vector,No
+attack_complexity,NVD,categorical,Attack complexity,No
+privileges_required,NVD,categorical,Privileges required,No
+user_interaction,NVD,categorical,User interaction,No
+scope,NVD,categorical,Scope,No
+confidentiality_impact,NVD,categorical,Confidentiality impact,No
+integrity_impact,NVD,categorical,Integrity impact,No
+availability_impact,NVD,categorical,Availability impact,No
+cvss_impact_score,NVD,numeric,Cvss impact score,No
+cvss_exploitability_score,NVD,numeric,Cvss exploitability score,No
+cvss_v2_partial_impact_flag,Derived from NVD,binary,CVSS v2 flag for a PARTIAL impact component,No
+cvss_v2_complete_impact_flag,Derived from NVD,binary,CVSS v2 flag for a COMPLETE impact component,No
+cwe,NVD current record,categorical,Current weakness identifiers,No; current enrichment is excluded from models
+cwe_count,NVD,integer,Count of distinct CWE values on the NVD record,No
+has_cwe,Derived from NVD,binary,Whether an NVD CWE is present,No
+vendor,NVD CPE,categorical,Semicolon-delimited affected CPE vendors,No (high cardinality)
+product,NVD CPE,categorical,Semicolon-delimited affected CPE products,No (high cardinality)
+cpe_match_count,NVD CPE,integer,Count of distinct CPE criteria in configuration data,No
+affected_vendor_count,Derived from NVD CPE,integer,Count of distinct affected vendors,No
+affected_product_count,Derived from NVD CPE,integer,Count of distinct affected products,No
+reference_count,NVD,integer,Count of linked references,No
+reference_tag_count,NVD,integer,Count of reference tags,No
+exploit_reference_count,Derived from NVD,integer,References tagged Exploit,No
+patch_reference_count,Derived from NVD,integer,References tagged Patch,No
+advisory_reference_count,Derived from NVD,integer,References tagged Advisory,No
+cve_tag_count,NVD,integer,Count of CVE tags,No
+cve_tag_values,NVD,categorical,Semicolon-delimited CVE tag labels,No
+description_length_chars,Derived from NVD,integer,Character count of English CVE description,No
+description_word_count,Derived from NVD,integer,Word count of English CVE description,No
+has_cvss_score,Derived from NVD,binary,CVSS availability flag,No (not in model feature set)
+cve_age_days,Derived from NVD,integer,Decision date minus publication date in days,Yes
+kev_date_added,CISA KEV,date,Catalogue addition date,No; label construction only
+epss_at_decision,FIRST EPSS,numeric,Dated exploitation probability (0-1),Yes in EPSS feature set
+epss_percentile_at_decision,FIRST EPSS,numeric,Dated EPSS percentile (0-1),Yes in EPSS feature set
+decision_date,Derived,date,Fixed decision snapshot date,No
+kev_30d_label,Derived from KEV,binary,1 if added within 30 days after decision date,Target only
+epss_model_version,FIRST EPSS,categorical,Model version embedded in dated file,No
+has_epss_at_decision,Derived from EPSS,binary,Decision-date EPSS availability flag,Yes
+cvss_version_asof,NVD change history,categorical,CVSS version available by the decision date,Yes
+cvss_score_asof,NVD change history,numeric,CVSS base score reconstructed from the latest vector recorded by the decision date,Yes
+cvss_severity_asof,NVD,categorical,Cvss severity asof,Yes
+cvss_vector_asof,NVD,categorical,Cvss vector asof,No
+cvss_source_asof,NVD,categorical,Cvss source asof,No
+attack_vector_asof,NVD,categorical,Attack vector asof,Yes
+attack_complexity_asof,NVD,categorical,Attack complexity asof,Yes
+privileges_required_asof,NVD,categorical,Privileges required asof,Yes
+user_interaction_asof,NVD,categorical,User interaction asof,Yes
+scope_asof,NVD,categorical,Scope asof,Yes
+confidentiality_impact_asof,NVD,categorical,Confidentiality impact asof,Yes
+integrity_impact_asof,NVD,categorical,Integrity impact asof,Yes
+availability_impact_asof,NVD,categorical,Availability impact asof,Yes
+cvss4_score_asof,NVD,numeric,Cvss4 score asof,No
+cvss4_vector_asof,NVD,categorical,Cvss4 vector asof,No
+cvss4_source_asof,NVD,categorical,Cvss4 source asof,No
+cvss_any_version_asof,NVD,numeric,Cvss any version asof,No
+cvss_any_score_asof,NVD,numeric,Cvss any score asof,No
+cvss_v3,Derived,numeric,Decision-date CVSS v3.0/v3.1 base score reconstructed from NVD history,Yes
+has_historical_cvss_3x,NVD,numeric,Has historical cvss 3x,No
+has_historical_cvss_any,NVD,numeric,Has historical cvss any,No
+cvss_normalized,Derived,numeric,CVSS v3.x score divided by 10,Ranking only
+combined_score,Derived,numeric,Equal-weight average of normalized CVSS v3.x and dated EPSS,Ranking only
+top_cwe,Derived,categorical,First CWE mapped to top 20 across panel; exploratory only; not used in models,Ranking only

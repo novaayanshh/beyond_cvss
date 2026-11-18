@@ -1,5 +1,24 @@
-data/processed/*.csv
-output/
-__pycache__/
-.ipynb_checkpoints/
+# Raw and intermediate data
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+
+# Python
 .venv/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Secrets and local machine files
+.env
+.DS_Store
+Thumbs.db
+# Local preview and runtime dependencies
+.codex-build/
+node_modules/
+scripts/node_modules/
+.chart-data-*/
