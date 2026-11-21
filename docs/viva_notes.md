@@ -19,7 +19,7 @@ We ask whether EPSS, which estimates exploitation probability over the next 30 d
 - The main CVSS score comparison uses v3.0/v3.1 reconstructed from timestamped NVD history, strictly before 00:00 UTC on each decision date. When history is missing, the historical score stays missing. CVSS 4.0 is summarized separately.
 - The combined ranking is an equal-weight average of CVSS v3.x divided by 10 and EPSS at the decision date. This is a transparent baseline, not a tuned optimum.
 - Models use dates through 2025-08 for training, 2026-02 for validation, and 2026-08 for final testing. Class weighting addresses the rare positive label. EPSS fields are excluded from the no-EPSS feature set; KEV fields are target-only.
-- The results are mixed. On the pooled common cohort (859,971 rows, 99 positives), the top 1,000 captured 0/99 with historical CVSS-only, 5/99 with EPSS-only, and 5/99 with the combined ranking. H2/H3 comparisons remain inconclusive after Holm adjustment. EPSS features improve AP for all three model families on the final holdout, but that holdout has only 19 positives.
+- The headline is the mean across ten dates: expected Recall@1,000 is 7.94% for CVSS-only, 26.43% for EPSS-only, and 27.64% for Combined. Pooled expected captures at K=1,000 are 1.86, 5, and 5 of 99 positive rows. H2/H3 remain inconclusive overall after Holm adjustment, although one date-specific H2 comparison survives correction. EPSS features improve AP for all three model families on the final holdout, which has only 19 positives. Ties in CVSS scores are broken at random and averaged (expected recall).
 
 ## Limitations to state aloud
 

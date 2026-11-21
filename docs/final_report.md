@@ -7,7 +7,7 @@
 
 This project asks whether a security team can capture more soon-to-be-listed vulnerabilities under a fixed patching budget by ranking with EPSS or with a CVSS and EPSS combination instead of CVSS alone. We joined NVD, ten dated FIRST EPSS snapshots, and the CISA KEV catalogue. The panel contains 934,180 CVE-date rows and 109 future KEV additions across decision dates from February 2022 through August 2026.
 
-In the pooled common cohort, the top 1,000 captured 0 future KEV additions with historical CVSS 3.x alone, 5 with EPSS alone, and 5 with the equal-weight combined score. Both EPSS-inclusive rankings had 5.05% recall (bootstrap 95% intervals 0.99%–9.72% for EPSS and 1.42%–9.19% for Combined). EPSS was associated with higher future KEV status in the pooled rank test. However, differences between rankings were not significant after Holm adjustment across dates and budgets, and the best ranking changed by period. On the August 2026 holdout, all three model families had higher Average Precision after adding EPSS, but the test contained only 19 positives.
+The main ranking result gives each of the ten dates equal weight. Mean expected Recall@1,000 is 7.94% for historical CVSS-only, 26.43% for EPSS-only, and 27.64% for the equal-weight combination. The pooled common cohort has 859,971 rows and 99 positives; exact expected captures at K=1,000 are 1.86 for CVSS, 5 for EPSS, and 5 for Combined. H2 and H3 remain inconclusive overall after Holm correction, although one date-specific H2 comparison survives correction. The best ranking changes by period. On the August 2026 holdout, all three model families had higher Average Precision after adding EPSS, but the test contains only 19 positives.
 
 These findings support a controlled shadow-mode pilot of EPSS-enhanced triage. They do not show that EPSS causes better outcomes or justify replacing analyst judgment or asset context.
 
@@ -65,7 +65,7 @@ At each date, CVEs are ranked by:
 2. EPSS at that decision date.
 3. An equal-weight score: `0.5 * (CVSS / 10) + 0.5 * EPSS`.
 
-The main paired comparison uses rows with both CVSS 3.x and EPSS available. We report Recall@K and Precision@K at K = 50, 100, 500, and 1,000 per date and pooled. Confidence intervals use 300 bootstrap resamples of CVE-date rows within each date.
+The main paired comparison uses rows with both CVSS 3.x and EPSS available. We report Recall@K and Precision@K at K = 50, 100, 500, and 1,000 per date and pooled. Tied scores use exact expected metrics under uniform random tie-breaking. Confidence intervals and paired tests use 1,000 bootstrap resamples within each date, including date-stratified pooled resampling. Latest example priority lists use score descending, EPSS descending as the secondary sort, then CVE ID; a tied_at_cutoff flag identifies a primary-score tie crossing K.
 
 ### Hypothesis tests
 
@@ -77,40 +77,43 @@ Logistic Regression, Random Forest, and XGBoost are trained on dates through Aug
 
 ## 4. Results
 
-### Ranking results
+### Per-date results (headline)
 
-In the pooled common cohort, the top 1,000 rows captured:
-
-| Method | Positives captured | Recall@1,000 | Precision@1,000 | 95% bootstrap interval for recall |
-|---|---:|---:|---:|---:|
-| CVSS-only | 0 / 99 | 0.00% | 0.00% | 0.00%–0.00% |
-| EPSS-only | 5 / 99 | 5.05% | 0.50% | 0.99%–9.72% |
-| Combined | 5 / 99 | 5.05% | 0.50% | 1.42%–9.19% |
-
-The pooled K is applied to the stacked CVE-date panel, with 859,971 rows in the common cohort. This complete-case cohort includes only rows with historical CVSS 3.x and decision-date EPSS, and 99 positive labels. It is not a claim that these historical rows could be jointly patched at one point in time.
-
-Recall@1,000 differed by period:
+Expected Recall@1,000 on the common complete-case cohort. The final row gives the unweighted mean across decision dates.
 
 | Decision date | CVSS-only | EPSS-only | Combined |
 |---|---:|---:|---:|
-| 2022-02-19 | 0.0% | 0.0% | 10.0% |
-| 2022-08-19 | 0.0% | 50.0% | 50.0% |
-| 2023-02-19 | 0.0% | 71.4% | 57.1% |
-| 2023-08-19 | 0.0% | 60.0% | 60.0% |
-| 2024-02-19 | 0.0% | 25.0% | 25.0% |
-| 2024-08-19 | 0.0% | 22.2% | 22.2% |
-| 2025-02-19 | 0.0% | 14.3% | 14.3% |
+| 2022-02-19 | 25.0% | 0.0% | 10.0% |
+| 2022-08-19 | 12.1% | 50.0% | 50.0% |
+| 2023-02-19 | 2.3% | 71.4% | 57.1% |
+| 2023-08-19 | 4.6% | 60.0% | 60.0% |
+| 2024-02-19 | 2.1% | 25.0% | 25.0% |
+| 2024-08-19 | 2.1% | 22.2% | 22.2% |
+| 2025-02-19 | 8.9% | 14.3% | 14.3% |
 | 2025-08-19 | 0.0% | 0.0% | 0.0% |
-| 2026-02-19 | 10.5% | 15.8% | 21.1% |
+| 2026-02-19 | 5.5% | 15.8% | 21.1% |
 | 2026-08-19 | 16.7% | 5.6% | 16.7% |
+| **Mean across 10 dates** | **7.9%** | **26.4%** | **27.6%** |
 
-Small positive counts make individual-date recall step in large increments. For example, each one of the four common-cohort positives in February 2024 changes Recall by 25 percentage points. Per-date denominators can be smaller than the total KEV-positive count when historical CVSS is missing.
+Each date has equal weight in the mean. Sparse positive counts make date-level recall move in large steps. In February 2024, each of the four common-cohort positives changes recall by 25 percentage points. Ties are averaged rather than resolved by input row order.
+
+### Pooled results (secondary)
+
+The pooled metric combines CVE-date opportunities across dates. Repeated CVEs remain in the panel; this is not one live patch queue. At K=1,000:
+
+| Method | Expected captures of 99 | Recall@1,000 | Precision@1,000 | 95% bootstrap interval for recall |
+|---|---:|---:|---:|---:|
+| CVSS-only | 1.86 / 99 | 1.88% | 0.186% | 0.45%–4.05% |
+| EPSS-only | 5.00 / 99 | 5.05% | 0.500% | 1.02%–9.38% |
+| Combined | 5.00 / 99 | 5.05% | 0.500% | 1.15%–9.62% |
+
+The exact expected CVSS capture is fractional because the 1,000-item boundary falls inside a tied-score group.
 
 ### Statistical tests
 
 In the pooled H1 test, the median EPSS score for positive rows exceeded that for negative rows by 0.00718 (raw p = 2.72e-11; Holm-adjusted p = 2.99e-10). The result is statistically strong under the row-level test, but the date-level evidence is mixed and repeated CVEs make pooled rows dependent.
 
-For H2, the pooled EPSS minus CVSS Recall@1,000 difference was 5.05 percentage points (95% bootstrap interval 0.98–9.30 points; raw p = 0.0166; Holm-adjusted p = 0.648). For H3, the combined minus CVSS difference was also 5.05 points (95% bootstrap interval 1.14–9.43 points; raw p = 0.0166; Holm-adjusted p = 0.664). After correction across the dates and budgets, neither difference is conclusive.
+For H2, the pooled EPSS minus CVSS Recall@1,000 difference is 3.17 percentage points (95% stratified bootstrap interval −1.83 to 7.83 points; raw p = 0.1868; Holm-adjusted p = 1.000). For H3, the pooled Combined minus CVSS difference is also 3.17 points (95% interval −1.29 to 8.84 points; raw p = 0.1998; Holm-adjusted p = 1.000). One date-specific H2 result on 2023-08-19 at K=500 and K=1,000 survives Holm correction (adjusted p = 0.044); other periods differ, so H2 remains inconclusive overall. H3 remains inconclusive.
 
 ### Model results
 
@@ -129,7 +132,7 @@ All three model families had higher AP with EPSS in this holdout. The estimate i
 | Hypothesis | Status | Summary |
 |---|---|---|
 | H1 | Supported, with a period caveat | Strong pooled association; date-level tests vary and repeated rows limit pooled inference. |
-| H2 | Inconclusive | EPSS captured more positives in pooled top-K comparisons, but Holm-adjusted tests did not support a stable gain. |
+| H2 | Inconclusive overall | One 2023-08-19 result at K=500 and K=1,000 survives Holm correction, but the pooled difference is inconclusive and effects vary by date. |
 | H3 | Inconclusive | Combined and EPSS-only tied for pooled top-1,000 recall, but adjusted tests and per-period variation do not establish a consistent advantage. |
 | H4 | Supported provisionally | EPSS improved AP for all three models on the held-out period, which contains 19 positives. |
 | H5 | Inconclusive | The leading ranking changes across dates; the 2026.06.15 EPSS version has only one decision date. |
@@ -141,6 +144,8 @@ Use EPSS as an additional signal in a shadow-mode prioritization pilot, while ke
 The roadmap in `docs/recommendations.md` covers data/asset matching, a shadow evaluation, a controlled analyst-approved pilot, and a decision review. Track Recall@K, Precision@K, AP, time-to-patch, analyst overrides, infeasible recommendations, and data freshness.
 
 ## 7. Limitations
+
+- Ties in CVSS scores are broken at random and averaged (expected recall).
 
 1. NVD history may not contain a CVSS 3.x vector for every CVE/date; such scores remain missing and are not replaced with current scores. CWE, CPE, references, and rejection status still reflect current NVD records rather than historical snapshots.
 2. KEV dates measure catalogue addition, not actual exploitation time.

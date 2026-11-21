@@ -8,8 +8,8 @@ const here = path.resolve(scriptDir, "..", ".codex-build", "pptx");
 const workspaceDir = path.resolve(here, "..", "..");
 const outDir = path.join(here, "render");
 const candidatePath = path.join(here, "candidate.pptx");
-const finalPath = path.join(workspaceDir, "docs", "slides.pptx");
-const SKILL_DIR = "C:\\Users\\sumit\\.codex\\plugins\\cache\\openai-primary-runtime\\presentations\\26.1117.12345\\skills\\presentations";
+const finalPath = path.join(here, "revision", "slides.pptx");
+const SKILL_DIR = "C:\\Users\\sumit\\.codex\\plugins\\cache\\openai-primary-runtime\\presentations\\26.1119.11507\\skills\\presentations";
 
 const W = 1280, H = 720;
 const C = {
@@ -190,30 +190,30 @@ const presentation = Presentation.create({ slideSize: { width: W, height: H } })
   addRect(slide, 854, 209, 1, 220, C.line, "none");
   addText(slide, "4 positives", 900, 242, 300, 50, { fontSize: "25pt", bold: true, color: C.navy });
   addText(slide, "in February 2024\nRecall changes by 25 points per captured CVE", 900, 310, 280, 90, { fontSize: "15pt", color: C.muted });
-  addText(slide, "Bootstrap intervals are wide, and pooled rows include CVEs repeated at different dates.",
+  addText(slide, "Ties in CVSS scores are broken at random and averaged (expected recall). Bootstrap intervals are wide, and pooled rows include CVEs repeated at different dates.",
     72, 480, 1080, 60, { fontSize: "17pt", color: C.text });
   notes(slide, "Across the ten dates there are 109 positives. Some dates have only four to six positives, so date-level Recall@K moves in large steps. Bootstrap intervals resample CVE-date rows within each date; repeated-CVE dependence remains a limitation.");
 }
 
-// 7. Pooled top K
+// 7. Per-date headline
 {
-  const slide = startSlide(presentation, 7, "Stage 2  |  Validate the evidence", "Pooled top 1,000 captures 0, 5, or 5 positives");
+  const slide = startSlide(presentation, 7, "Stage 2  |  Validate the evidence", "Expected capture varies across dates");
   addChart(slide, "bar", {
     position: { left: 80, top: 196, width: 650, height: 420 },
-    title: "Future KEV additions captured at K = 1,000",
+    title: "Mean per-date Recall@1,000 (equal date weights)",
     categories: ["CVSS-only", "EPSS-only", "Combined"],
-    series: [{ name: "Captured KEVs", values: [0, 5, 5], fill: C.teal }],
+    series: [{ name: "Mean Recall", values: [7.94, 26.43, 27.64], fill: C.teal }],
     barOptions: { direction: "column", grouping: "clustered", gapWidth: 75 },
     hasLegend: false,
     dataLabels: { showValue: true, position: "outEnd", textStyle: { typeface: FONT, fontSize: 15, fill: C.navy, bold: true } },
-    yAxis: { min: 0, max: 6, majorUnit: 1, title: { text: "Positive rows captured", textStyle: { typeface: FONT, fontSize: 13, fill: C.muted } }, textStyle: { typeface: FONT, fontSize: 12, fill: C.muted }, majorGridlines: { style: "solid", fill: C.line, width: 1 } },
+    yAxis: { min: 0, max: 35, majorUnit: 5, title: { text: "Mean recall (%)", textStyle: { typeface: FONT, fontSize: 13, fill: C.muted } }, textStyle: { typeface: FONT, fontSize: 12, fill: C.muted }, majorGridlines: { style: "solid", fill: C.line, width: 1 } },
   });
-  addText(slide, "Out of 99 common-cohort positives", 790, 220, 380, 32, { fontSize: "14pt", bold: true, color: C.teal });
-  addText(slide, "CVSS-only\n0 / 99\n\nEPSS-only\n5 / 99\n\nCombined\n5 / 99",
-    790, 268, 360, 290, { fontSize: "21pt", color: C.navy, lineSpacing: 1.0 });
-  addText(slide, "Pooled common cohort: 859,971 CVE-date rows. Recall@1,000 is 0.0%, 5.1%, and 5.1%, respectively.",
+  addText(slide, "Equal-weight mean across 10 dates", 790, 220, 380, 32, { fontSize: "14pt", bold: true, color: C.teal });
+  addText(slide, "CVSS-only  7.94%\nEPSS-only  26.43%\nCombined  27.64%",
+    790, 278, 360, 150, { fontSize: "21pt", color: C.navy, lineSpacing: 1.0 });
+  addText(slide, "Pooled context: expected captures are 1.86, 5, and 5 of 99 positives (CVSS, EPSS, Combined).",
     72, 620, 1115, 36, { fontSize: "13pt", color: C.muted });
-  notes(slide, "The pooled top-1,000 ranking contains 0 CVSS-only, 5 EPSS-only, and 5 combined positives in the common historical CVSS 3.x/EPSS cohort. This is a stacked historical panel, not a real-time joint patch queue. See outputs/tables/ranking_results.csv. Data sources: NVD, FIRST EPSS, CISA KEV.");
+  notes(slide, "Headline is the unweighted mean across ten dates. Ties in CVSS scores are broken at random and averaged (expected recall). Pooled expected captures at K=1,000 are 1.86, 5, and 5 of 99. Pooled rows include repeated CVEs across snapshots. Confidence intervals and paired tests use 1,000 date-stratified bootstrap replicates. Sources: NVD, FIRST EPSS, CISA KEV.");
 }
 
 // 8. Per-date stability
@@ -224,7 +224,7 @@ const presentation = Presentation.create({ slideSize: { width: W, height: H } })
     title: "Recall@1,000 by decision date",
     categories: ["22 Feb", "22 Aug", "23 Feb", "23 Aug", "24 Feb", "24 Aug", "25 Feb", "25 Aug", "26 Feb", "26 Aug"],
     series: [
-      { name: "CVSS-only", values: [0, 0, 0, 0, 0, 0, 0, 0, 0.105263, 0.166667], line: { style: "solid", fill: C.blue, width: 3 }, marker: { symbol: "circle", size: 7, fill: C.blue } },
+      { name: "CVSS-only", values: [0.25, 0.121444, 0.022964, 0.046350, 0.021498, 0.020693, 0.088919, 0, 0.055041, 0.166667], line: { style: "solid", fill: C.blue, width: 3 }, marker: { symbol: "circle", size: 7, fill: C.blue } },
       { name: "EPSS-only", values: [0, 0.5, 0.714286, 0.6, 0.25, 0.222222, 0.142857, 0, 0.157895, 0.055556], line: { style: "solid", fill: C.teal, width: 3 }, marker: { symbol: "circle", size: 7, fill: C.teal } },
       { name: "Combined", values: [0.1, 0.5, 0.571429, 0.6, 0.25, 0.222222, 0.142857, 0, 0.210526, 0.166667], line: { style: "solid", fill: C.orange, width: 3 }, marker: { symbol: "circle", size: 7, fill: C.orange } },
     ],
@@ -266,7 +266,7 @@ const presentation = Presentation.create({ slideSize: { width: W, height: H } })
   const slide = startSlide(presentation, 10, "Stage 3  |  Inform the decision", "Hypothesis assessment");
   const rows = [
     ["H1", "Supported, period caveat", "Pooled EPSS is higher for positives; date-level evidence varies."],
-    ["H2", "Inconclusive", "EPSS captured more pooled positives, but adjusted tests did not confirm a stable gain."],
+    ["H2", "Inconclusive", "One 2023-08-19 comparison survives Holm; overall evidence remains inconclusive."],
     ["H3", "Inconclusive", "Combined tied EPSS for pooled Recall@1,000; adjusted evidence does not establish a gain."],
     ["H4", "Supported provisionally", "EPSS improved AP on the held-out Aug 2026 period (19 positives)."],
     ["H5", "Inconclusive", "The leading ranking changes by date; newest EPSS version has one period."],
@@ -322,7 +322,7 @@ const result = await finalizePresentation({
   workspaceDir,
   candidatePath,
   finalPath,
-  pythonExecutable: "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1117-835-0_26.1117.835.0_x64__3k8sg7r9htsxt\\dependencies\\python\\python.exe",
+  pythonExecutable: "C:\\Users\\sumit\\Documents\\code\\projects\\beyond_cvss\\.venv\\Scripts\\python.exe",
   integrityValidatorPath: path.join(SKILL_DIR, "container_tools/inspect_presentation_package_integrity.py"),
   layoutValidatorPath: path.join(SKILL_DIR, "container_tools/inspect_presentation_layout_geometry.py"),
   layoutArgs: ["--expected-slide-size-emu", "12192000,6858000", "--validate-heading-fit"],

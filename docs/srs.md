@@ -133,9 +133,9 @@
 | Data provenance and reproducibility docs | Done locally in `DATA_README.md`, `docs/decision_dates.md`, and numbered scripts. |
 | Hypothesis assessment and recommendations | Done locally in `docs/hypothesis_assessment.md` and `docs/recommendations.md`; evidence is qualified by the small positive count. |
 | Final report and slides | Historical CVSS findings updated; six-page PDF inspected, 11-slide deck regenerated and validated. DOCX/PDF and deck are ready for team review. |
-| Public GitHub repository | Not published from this workspace. |
+| GitHub repository | Current project state pushed to the configured origin remote on 2026-11-19; original submitted state is tagged `submitted-v1`. |
 
-The project files are ready for team review. Publishing the repository publicly is still pending a separate user request.
+The project files and post-submission corrections are ready for team review. The original submitted commit remains available under the `submitted-v1` tag.
 
 # Plan of Action
 

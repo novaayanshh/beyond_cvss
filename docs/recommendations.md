@@ -4,9 +4,9 @@
 
 Use EPSS as an additional signal in a **shadow-mode prioritization pilot**, while keeping CVSS and asset context visible to analysts. The project results do not justify automatically replacing an existing CVSS workflow or sending patches solely from an EPSS ranking.
 
-On the pooled common cohort of 859,971 CVE-date rows and 99 positives, the top 1,000 combined-score rows and EPSS-only rows each captured 5 future KEV additions; historical CVSS-only captured none. The absolute recall remains low, statistical support for H2/H3 does not survive the planned multiple-test adjustment, and results change across periods. On 2026-08-19, historical CVSS-only and Combined each reached 16.7% Recall@1,000, while EPSS-only reached 5.6%. A pilot should test whether these signals help a specific organization after asset criticality, exposure, compensating controls, and patch feasibility are considered.
+The headline is the equal-weight mean across dates: expected Recall@1,000 is 7.94% for CVSS-only, 26.43% for EPSS-only, and 27.64% for Combined. In the pooled common cohort (859,971 rows, 99 positives), expected top-1,000 captures are 1.86 for CVSS, 5 for EPSS, and 5 for Combined. H2/H3 remain inconclusive overall after Holm adjustment, although one date-specific H2 comparison survives correction; results vary across periods. On 2026-08-19, expected Recall@1,000 is 16.7% for CVSS-only, 5.6% for EPSS-only, and 16.7% for Combined. A pilot should test whether these signals help a specific organization after asset criticality, exposure, compensating controls, and patch feasibility are considered.
 
-For research use, treat the equal-weight combined score as an initial candidate, not a proven optimal weight: `0.5 * (CVSS v3.x / 10) + 0.5 * EPSS at decision date`. Keep the three separate ranked lists available for comparison. The example top-1,000 rankings for the latest snapshot are in `outputs/tables/latest_patch_priorities.csv`; they contain scores and CVE metadata only, not the future outcome label.
+Ties in CVSS scores are broken at random and averaged (expected recall). For research use, treat the equal-weight combined score as an initial candidate, not a proven optimal weight: `0.5 * (CVSS v3.x / 10) + 0.5 * EPSS at decision date`. Keep the three separate ranked lists available for comparison. The example top-1,000 rankings for the latest snapshot are in `outputs/tables/latest_patch_priorities.csv`; they contain scores and CVE metadata only, not the future outcome label.
 
 ## Roadmap
 
@@ -20,7 +20,7 @@ For research use, treat the equal-weight combined score as an initial candidate,
 ## Guardrails and limitations
 
 - Do not describe the observed association as proof that EPSS causes better security outcomes.
-- Keep CVSS version and missingness visible. Compare CVSS 4.0 separately from the main CVSS 3.x analysis.
+- Keep CVSS version and missingness visible. Compare CVSS 4.0 separately from the main CVSS 3.x analysis. Ties in CVSS scores are broken at random and averaged (expected recall).
 - Do not compare raw EPSS probabilities across model versions without accounting for the version change.
 - Keep asset criticality, internet exposure, exploit mitigations, and patch feasibility in analyst review; they are not represented in this dataset.
 - Re-run the backtest after new decision dates accumulate. The current positive count and period-to-period variation do not establish a stable policy.

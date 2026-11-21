@@ -14,7 +14,11 @@ This project compares CVSS-only, EPSS-only, and combined rankings for a limited 
 
 CVSS 3.x is reconstructed from timestamped NVD history using only vectors recorded strictly before 00:00 UTC on each decision date. Current CVSS values are kept for audit and never substituted for missing history. Coverage ranges from 89.8% to 93.7% per date.
 
-The ten decision panels contain 934,180 CVE-date rows and 109 positive labels. On the pooled common cohort (859,971 rows, 99 positives), the top 1,000 captured 0 positives with historical CVSS-only, 5 with EPSS-only, and 5 with the equal-weight combined ranking. These are exploratory pooled results across decision dates; uncertainty is wide because there are few positives and some CVEs recur across dates. Per-date results and multiplicity-adjusted tests are in `outputs/tables/` and the final report.
+The ten decision panels contain 934,180 CVE-date rows and 109 positive labels. On the common cohort, mean date-level Recall@1,000 is 7.94% for historical CVSS-only, 26.43% for EPSS-only, and 27.64% for Combined. The pooled cohort has 859,971 rows and 99 positives; exact expected top-1,000 captures under uniform tie-breaking are 1.86 for CVSS-only and 5 each for EPSS-only and Combined. The pooled analysis is secondary because CVEs recur across dates. Bootstrap uncertainty and multiple-test-adjusted results remain inconclusive overall for H2/H3, though one 2023-08-19 H2 date/budget comparison survives Holm adjustment. See the per-date summary and `docs/post_submission_changes.md` for details.
+
+## Post-submission corrections
+
+Tie-aware expected metrics, date-stratified pooled bootstrapping, and updated results are documented in [docs/post_submission_changes.md](docs/post_submission_changes.md). The original results remain preserved under the `submitted-v1` Git tag and the ignored `outputs_submitted_v1/` snapshot.
 
 ## Hypotheses
 
@@ -77,7 +81,8 @@ The source downloader skips existing raw files. NVD history retrieval is resumab
 - `data/processed/ssot_final.csv`: dated panel without long description text.
 - `data/processed/ssot_historical.csv`: dated panel augmented with CVSS 3.0/3.1 values reconstructed from NVD change history.
 - `outputs/tables/panel_summary.csv`: panel size, positives, EPSS missingness, and model version per date.
-- `outputs/tables/ranking_results.csv`: Recall@K, Precision@K, and bootstrap intervals by method, date, and pooled cohort.
+- `outputs/tables/ranking_results.csv`: tie-aware expected Recall@K, Precision@K, and bootstrap intervals by method, date, and pooled cohort.
+- `outputs/tables/ranking_per_date_summary.csv`: equal-weight mean and range of Recall@K/Precision@K across decision dates.
 - `outputs/tables/test_results.csv`: H1–H3 tests with Holm-adjusted p-values.
 - `outputs/tables/model_results.csv`: time-ordered Logistic Regression, Random Forest, and XGBoost comparisons with/without EPSS.
 - `outputs/tables/latest_patch_priorities.csv`: latest-date top-1,000 lists for each ranking method.
@@ -92,7 +97,8 @@ The source downloader skips existing raw files. NVD history retrieval is resumab
 - CVSS 3.x scores/vectors are reconstructed from timestamped NVD history; other NVD enrichment fields remain current and are excluded from model features.
 - KEV records catalogue inclusion date, not actual attack time.
 - Only 109 positive CVE-date rows occur in the ten periods; small-date estimates are noisy.
-- The pooled unit is a CVE-decision opportunity, not a unique CVE. Bootstrap intervals resample within each date.
+- The pooled unit is a CVE-decision opportunity, not a unique CVE. Bootstrap intervals use 1,000 date-stratified resamples.
+- Ties in CVSS scores are broken at random and averaged (expected recall).
 - Recommendations are for a controlled evaluation/pilot, not automatic patching.
 - Team members should review and understand the code and follow the instructor's and university's requirements for reporting AI assistance before submission.
 

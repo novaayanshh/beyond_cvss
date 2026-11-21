@@ -65,7 +65,7 @@ For each decision date `d`, include CVEs published strictly before `d`, exclude 
 
 ## Data quality and generated tables
 
-The panel build writes `outputs/tables/panel_summary.csv` and `missingness.csv`. Historical reconstruction writes `historical_cvss_coverage.csv`; the analysis writes `data_quality_by_date.csv`, `cvss_version_mix.csv`, `cvss_version_performance.csv`, and `schema.csv`. `scripts/04_finalize_outputs.py` produces the example latest-date ranked lists and final figures. The current panel has 934,180 CVE-date rows, 206,865 distinct CVE IDs across dates, and 109 positive labels; 860,287 rows have historical CVSS 3.x (92.1%). Because CVEs recur at multiple decision dates, the pooled unit is a CVE-decision opportunity.
+The panel build writes `outputs/tables/panel_summary.csv` and `missingness.csv`. Historical reconstruction writes `historical_cvss_coverage.csv`; the analysis writes `data_quality_by_date.csv`, `cvss_version_mix.csv`, `cvss_version_performance.csv`, `ranking_per_date_summary.csv`, and `schema.csv`. `scripts/04_finalize_outputs.py` produces the example latest-date ranked lists and final figures. The current panel has 934,180 CVE-date rows, 206,865 distinct CVE IDs across dates, and 109 positive labels; 860,287 rows have historical CVSS 3.x (92.1%). Because CVEs recur at multiple decision dates, the pooled unit is a CVE-decision opportunity.
 
 ## Limitations
 
@@ -73,7 +73,8 @@ The panel build writes `outputs/tables/panel_summary.csv` and `missingness.csv`.
 - KEV `dateAdded` is catalogue inclusion date, not the time of the first real-world attack.
 - Only 109 positive CVE-date rows are available across the ten periods, and the 2024 February period has four. Recall@K and model metrics are consequently unstable.
 - EPSS model versions change over time. Interpret date-specific rankings rather than comparing raw scores directly across versions.
-- Pooled analyses retain repeated CVEs across dates. Confidence intervals resample decision rows within each date; they do not remove all dependence from repeated IDs.
+- Pooled analyses retain repeated CVEs across dates. The 1,000 bootstrap replicates resample decision rows within each date; expected metrics average uniformly over score ties. Resampling does not remove all dependence from repeated IDs.
+- Ties in CVSS scores are broken at random and averaged (expected recall).
 - The findings concern association and predictive ranking, not a causal effect of EPSS on patch outcomes.
 
 ## Reproducibility

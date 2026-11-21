@@ -45,7 +45,17 @@ with r1:
         st.line_chart(period.pivot(index='decision_date',columns='method',values='precision_at_k'))
     else: st.info('No ranking results match these filters.')
 with r2:
-    st.markdown(f'**Pooled results at K = {k:,}**')
+    st.markdown(f'**Equal-weight mean across selected dates at K = {k:,}**')
+    if not period.empty:
+        mean_rows=period.groupby('method',as_index=False).agg(
+            dates=('decision_date','nunique'),
+            mean_recall=('recall_at_k','mean'),
+            mean_precision=('precision_at_k','mean'),
+        )
+        st.dataframe(mean_rows.set_index('method').style.format(
+            {'mean_recall':'{:.3f}','mean_precision':'{:.4%}','dates':'{:.0f}'}
+        ),use_container_width=True)
+    st.markdown(f'**Pooled context at K = {k:,}**')
     pooled=rank[rank.decision_date.eq('POOLED')&rank.cohort.eq(cohort)&rank.k.eq(k)]
     if not pooled.empty:
         cols=['method','pool_size','positives_in_pool','recall_at_k','recall_ci_low','recall_ci_high','precision_at_k']
@@ -66,5 +76,5 @@ st.markdown('### Hypothesis tests')
 if not tests.empty:
     cols=['hypothesis','decision_date','test','effect','p_value','p_holm_within_hypothesis','positives']
     st.dataframe(tests[cols].rename(columns={'p_value':'p-value','p_holm_within_hypothesis':'Holm-adjusted p','positives':'Positive rows'}),use_container_width=True,hide_index=True)
-st.info('Retrospective catalogue-addition study, not causal evidence or an automatic patch recommendation. Outcomes are rare, CVEs repeat across snapshots, and the final ML test date has only 19 positives.')
+st.info('Ties in CVSS scores are broken at random and averaged (expected recall). Retrospective catalogue-addition study, not causal evidence or an automatic patch recommendation. Outcomes are rare, CVEs repeat across snapshots, and the final ML test date has only 19 positives.')
 st.caption('Sources: NVD · FIRST EPSS · CISA KEV');
