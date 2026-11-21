@@ -150,6 +150,20 @@ def ranking_outputs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
                 })
     result = pd.DataFrame(records)
     result.to_csv(TABLES / "ranking_results.csv", index=False)
+    per_date_summary = (
+        result.loc[result["decision_date"].ne("POOLED")]
+        .groupby(["cohort", "method", "k"], as_index=False)
+        .agg(
+            dates=("decision_date", "nunique"),
+            mean_recall_at_k=("recall_at_k", "mean"),
+            mean_precision_at_k=("precision_at_k", "mean"),
+            min_recall_at_k=("recall_at_k", "min"),
+            max_recall_at_k=("recall_at_k", "max"),
+            min_precision_at_k=("precision_at_k", "min"),
+            max_precision_at_k=("precision_at_k", "max"),
+        )
+    )
+    per_date_summary.to_csv(TABLES / "ranking_per_date_summary.csv", index=False)
 
     # Paired bootstrap tests H2/H3 on the common complete-case, CVSS 3.x pool.
     test_rows = []
@@ -162,6 +176,8 @@ def ranking_outputs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             pairs.append((str(pd.Timestamp(date).date()), common))
         pairs.append(("POOLED", cohorts["common_v3_epss"](df)))
         for date_label, g in pairs:
+            if date_label == "POOLED":
+                g = g.sort_values("decision_date", kind="stable").reset_index(drop=True)
             y = g["kev_30d_label"].to_numpy(dtype=np.int8)
             s1 = g[methods_for_test[first]].to_numpy(dtype=float)
             s2 = g[methods_for_test[second]].to_numpy(dtype=float)
@@ -253,15 +269,20 @@ def make_figures(df: pd.DataFrame, ranking: pd.DataFrame) -> None:
     ax.set(title="Future KEV additions by decision date", xlabel="Decision date", ylabel="Positive CVE decision rows")
     ax.tick_params(axis="x", rotation=30); fig.tight_layout(); fig.savefig(FIGURES / "kev_positives_by_date.png", dpi=180); plt.close(fig)
 
+    per_date = ranking.query("decision_date != 'POOLED' and cohort == 'common_v3_epss'")
     pooled = ranking.query("decision_date == 'POOLED' and cohort == 'common_v3_epss'")
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, (ax, pooled_ax) = plt.subplots(1, 2, figsize=(12, 5), gridspec_kw={"width_ratios": [1.5, 1]})
+    for method, g in per_date.groupby("method"):
+        g = g.groupby("k", as_index=False).agg(mean=("recall_at_k", "mean"), low=("recall_at_k", "min"), high=("recall_at_k", "max")).sort_values("k")
+        ax.plot(g["k"], g["mean"], marker="o", label=method)
+        ax.fill_between(g["k"], g["low"], g["high"], alpha=.12)
+    ax.set(title="Headline: mean per-date Recall@K", xlabel="Top-K patch picks", ylabel="Mean recall across dates", ylim=(0, 1))
     for method, g in pooled.groupby("method"):
         g = g.sort_values("k")
-        ax.plot(g["k"], g["recall_at_k"], marker="o", label=method)
-        ax.fill_between(g["k"], g["recall_ci_low"], g["recall_ci_high"], alpha=.12)
-    y_max = max(float(pooled["recall_ci_high"].max()), 0.01) * 1.12
-    ax.set(title="Pooled Recall@K (common cohort)", xlabel="Top-K patch picks", ylabel="Recall", ylim=(0, y_max))
-    ax.legend(); fig.tight_layout(); fig.savefig(FIGURES / "recall_at_k.png", dpi=180); plt.close(fig)
+        pooled_ax.plot(g["k"], g["recall_at_k"], marker="o", label=method)
+    pooled_ax.set(title="Pooled recall (secondary)", xlabel="Top-K patch picks", ylabel="Pooled recall", ylim=(0, 1))
+    pooled_ax.legend(frameon=False)
+    fig.tight_layout(); fig.savefig(FIGURES / "recall_at_k.png", dpi=180); plt.close(fig)
 
     band_df = df.loc[df["epss_at_decision"].notna()].copy()
     band_df["epss_band"] = pd.qcut(band_df["epss_at_decision"].rank(method="first"), 10, labels=False) + 1
