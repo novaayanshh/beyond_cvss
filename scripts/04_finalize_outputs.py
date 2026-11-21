@@ -7,7 +7,6 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,12 +31,11 @@ def main() -> None:
     methods = (("CVSS-only", "cvss_v3"), ("EPSS-only", "epss_at_decision"), ("Combined", "combined_score"))
     ranked_rows = []
     for method, score_col in methods:
-        ranked = latest.loc[latest[score_col].notna()].sort_values([score_col, "cve_id"], ascending=[False, True]).head(1000).copy()
-        ranked.insert(0, "rank", np.arange(1, len(ranked) + 1))
+        ranked = analysis.rank_priority_rows(latest, score_col, 1000)
         ranked.insert(0, "method", method)
         ranked["decision_date"] = latest_date.strftime("%Y-%m-%d")
         ranked["ranking_score"] = ranked[score_col]
-        ranked_rows.append(ranked[["decision_date", "method", "rank", "cve_id", "ranking_score",
+        ranked_rows.append(ranked[["decision_date", "method", "rank", "tied_at_cutoff", "cve_id", "ranking_score",
                                   "cvss_score_asof", "cvss_version_asof", "cvss_severity_asof", "epss_at_decision",
                                   "epss_percentile_at_decision", "epss_model_version", "cve_age_days", "cwe"]])
     pd.concat(ranked_rows, ignore_index=True).to_csv(TABLES / "latest_patch_priorities.csv", index=False)

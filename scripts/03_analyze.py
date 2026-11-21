@@ -8,7 +8,6 @@ unit in the pooled panel. It does not use current EPSS as a feature.
 """
 from __future__ import annotations
 
-import json
 import warnings
 from pathlib import Path
 
@@ -19,15 +18,19 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import mannwhitneyu
-from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
+
+try:
+    from scripts.ranking_utils import expected_recall_precision_at_k, randomized_top_order, rank_priority_rows
+except ModuleNotFoundError:
+    from ranking_utils import expected_recall_precision_at_k, randomized_top_order, rank_priority_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 PANEL_PATH = ROOT / "data" / "processed" / "ssot_historical.csv"
 TABLES = ROOT / "outputs" / "tables"
 FIGURES = ROOT / "outputs" / "figures"
 SEED = 20261118
-N_BOOT = 300
+N_BOOT = 1000
 KS = (50, 100, 500, 1000)
 MAIN_CVSS = {"3.0", "3.1"}
 
@@ -57,27 +60,7 @@ def read_panel() -> pd.DataFrame:
 
 
 def metric_at_k(y: np.ndarray, score: np.ndarray, k: int) -> tuple[float, float, int]:
-    valid = np.isfinite(score)
-    y, score = y[valid], score[valid]
-    if not len(y):
-        return np.nan, np.nan, 0
-    take = min(k, len(y))
-    # Stable sorting makes tie handling reproducible (input order follows panel order).
-    idx = np.argsort(-score, kind="stable")[:take]
-    hits = int(y[idx].sum())
-    total = int(y.sum())
-    return (hits / total if total else np.nan, hits / take if take else np.nan, take)
-
-
-def metrics_from_order(y: np.ndarray, order: np.ndarray) -> dict[int, tuple[float, float, int]]:
-    total = int(y.sum())
-    cumulative_hits = np.cumsum(y[order])
-    out = {}
-    for k in KS:
-        take = min(k, len(order))
-        hits = int(cumulative_hits[take - 1]) if take else 0
-        out[k] = (hits / total if total else np.nan, hits / take if take else np.nan, take)
-    return out
+    return expected_recall_precision_at_k(y, score, [k])[k]
 
 
 def boot_metrics(groups: list[pd.DataFrame], score_col: str, seed: int) -> dict[int, tuple[float, float, float, float]]:
@@ -85,8 +68,6 @@ def boot_metrics(groups: list[pd.DataFrame], score_col: str, seed: int) -> dict[
     values = {k: ([], []) for k in KS}
     base = pd.concat(groups, ignore_index=True)
     base_scores = base[score_col].to_numpy(dtype=float)
-    rank = np.empty(len(base_scores), dtype=np.int32)
-    rank[np.argsort(-base_scores, kind="stable")] = np.arange(len(base_scores), dtype=np.int32)
     y_base = base["kev_30d_label"].to_numpy(dtype=np.int8)
     offsets, start = [], 0
     for group in groups:
@@ -95,10 +76,9 @@ def boot_metrics(groups: list[pd.DataFrame], score_col: str, seed: int) -> dict[
     # Resample CVE decision rows within each date, preserving each date's pool size.
     for _ in range(N_BOOT):
         sampled = np.concatenate([rng.integers(a, b, size=b - a) for a, b in offsets if b > a])
-        sampled_ranks = rank[sampled]
+        sampled_scores = base_scores[sampled]
         take_max = min(max(KS), len(sampled))
-        selected = np.argpartition(sampled_ranks, take_max - 1)[:take_max]
-        order_local = selected[np.argsort(sampled_ranks[selected], kind="stable")]
+        order_local = randomized_top_order(sampled_scores, take_max, rng)
         y = y_base[sampled]
         selected_y = y[order_local]
         cumulative = np.cumsum(selected_y)
@@ -132,11 +112,7 @@ def ranking_outputs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             cohort = selector(date_df)
             for method, score_col in methods.items():
                 g = cohort.loc[cohort[score_col].notna()].copy()
-                if cohort_name == "available" and method == "EPSS-only":
-                    g = date_df.loc[date_df[score_col].notna()].copy()
-                if cohort_name == "available" and method == "CVSS-only":
-                    g = date_df.loc[date_df[score_col].notna()].copy()
-                if cohort_name == "available" and method == "Combined":
+                if cohort_name == "available":
                     g = date_df.loc[date_df[score_col].notna()].copy()
                 y, s = g["kev_30d_label"].to_numpy(dtype=np.int8), g[score_col].to_numpy(dtype=float)
                 boot = boot_metrics([g], score_col, SEED + int(pd.Timestamp(date).strftime("%Y%m%d")) + len(method))
@@ -190,20 +166,22 @@ def ranking_outputs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             s1 = g[methods_for_test[first]].to_numpy(dtype=float)
             s2 = g[methods_for_test[second]].to_numpy(dtype=float)
             rng = np.random.default_rng(SEED + len(label) + (0 if date_label == "POOLED" else int(date_label.replace("-", ""))))
-            order1 = np.empty(len(g), dtype=np.int32)
-            order2 = np.empty(len(g), dtype=np.int32)
-            order1[np.argsort(-s1, kind="stable")] = np.arange(len(g), dtype=np.int32)
-            order2[np.argsort(-s2, kind="stable")] = np.arange(len(g), dtype=np.int32)
+            date_offsets = []
+            start = 0
+            if date_label == "POOLED":
+                for _, group in g.groupby("decision_date", sort=True):
+                    date_offsets.append((start, start + len(group)))
+                    start += len(group)
+            else:
+                date_offsets = [(0, len(g))]
             boot_diffs = {k: [] for k in KS}
             for _ in range(N_BOOT):
-                idx = rng.integers(0, len(g), size=len(g))
+                idx = np.concatenate([rng.integers(a, b, size=b-a) for a,b in date_offsets if b>a])
                 b_y = y[idx]
-                rank1, rank2 = order1[idx], order2[idx]
+                sampled_s1, sampled_s2 = s1[idx], s2[idx]
                 max_k = min(max(KS), len(idx))
-                top1 = np.argpartition(rank1, max_k - 1)[:max_k]
-                top2 = np.argpartition(rank2, max_k - 1)[:max_k]
-                top1 = top1[np.argsort(rank1[top1], kind="stable")]
-                top2 = top2[np.argsort(rank2[top2], kind="stable")]
+                top1 = randomized_top_order(sampled_s1, max_k, rng)
+                top2 = randomized_top_order(sampled_s2, max_k, rng)
                 cum1, cum2 = np.cumsum(b_y[top1]), np.cumsum(b_y[top2])
                 denom = int(b_y.sum())
                 for k in KS:
@@ -431,16 +409,6 @@ def main() -> None:
                                         "positives": int(y.sum()), "k": k, "recall_at_k": recall,
                                         "precision_at_k": precision, "actual_picks": picks})
     pd.DataFrame(version_metrics).to_csv(TABLES / "cvss_version_performance.csv", index=False)
-    latest_date = df["decision_date"].max()
-    latest = df.loc[df["decision_date"].eq(latest_date)].copy()
-    priority_rows = []
-    for method, score_col in (("CVSS-only", "cvss_v3"), ("EPSS-only", "epss_at_decision"), ("Combined", "combined_score")):
-        ranked = latest.loc[latest[score_col].notna()].sort_values([score_col, "cve_id"], ascending=[False, True]).head(1000).copy()
-        ranked.insert(0, "rank", np.arange(1, len(ranked) + 1))
-        ranked.insert(0, "method", method)
-        ranked["ranking_score"] = ranked[score_col]
-        priority_rows.append(ranked[["decision_date", "method", "rank", "cve_id", "ranking_score", "cvss_score_asof", "cvss_version_asof", "cvss_severity_asof", "epss_at_decision", "epss_percentile_at_decision", "epss_model_version", "cve_age_days", "cwe"]])
-    pd.concat(priority_rows, ignore_index=True).to_csv(TABLES / "latest_patch_priorities.csv", index=False)
     all_columns = []
     descriptions = {
         "cve_id": ("NVD", "string", "Normalized CVE identifier", "No"),
@@ -456,7 +424,7 @@ def main() -> None:
         "cvss_version_asof": ("NVD change history", "categorical", "CVSS version available by the decision date", "Yes"),
         "epss_model_version": ("FIRST EPSS", "categorical", "Model version embedded in dated file", "No"),
         "has_cvss_score": ("Derived from NVD", "binary", "CVSS availability flag", "No (not in model feature set)"),
-        "has_epss_at_decision": ("Derived from EPSS", "binary", "Decision-date EPSS availability flag", "Yes"),
+        "has_epss_at_decision": ("Derived from EPSS", "binary", "Decision-date EPSS availability flag", "No"),
         "vendor": ("NVD CPE", "categorical", "Semicolon-delimited affected CPE vendors", "No (high cardinality)"),
         "product": ("NVD CPE", "categorical", "Semicolon-delimited affected CPE products", "No (high cardinality)"),
         "cwe": ("NVD current record", "categorical", "Current weakness identifiers", "No; current enrichment is excluded from models"),
