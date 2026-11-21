@@ -21,9 +21,9 @@ from scipy.stats import mannwhitneyu
 from statsmodels.stats.multitest import multipletests
 
 try:
-    from scripts.ranking_utils import expected_recall_precision_at_k, randomized_top_order, rank_priority_rows
+    from scripts.ranking_utils import expected_recall_precision_at_k, expected_metrics_from_codes, rank_priority_rows
 except ModuleNotFoundError:
-    from ranking_utils import expected_recall_precision_at_k, randomized_top_order, rank_priority_rows
+    from ranking_utils import expected_recall_precision_at_k, expected_metrics_from_codes, rank_priority_rows
 
 ROOT = Path(__file__).resolve().parents[1]
 PANEL_PATH = ROOT / "data" / "processed" / "ssot_historical.csv"
@@ -68,6 +68,7 @@ def boot_metrics(groups: list[pd.DataFrame], score_col: str, seed: int) -> dict[
     values = {k: ([], []) for k in KS}
     base = pd.concat(groups, ignore_index=True)
     base_scores = base[score_col].to_numpy(dtype=float)
+    base_score_codes = np.unique(base_scores, return_inverse=True)[1].astype(np.uint32)
     y_base = base["kev_30d_label"].to_numpy(dtype=np.int8)
     offsets, start = [], 0
     for group in groups:
@@ -76,18 +77,12 @@ def boot_metrics(groups: list[pd.DataFrame], score_col: str, seed: int) -> dict[
     # Resample CVE decision rows within each date, preserving each date's pool size.
     for _ in range(N_BOOT):
         sampled = np.concatenate([rng.integers(a, b, size=b - a) for a, b in offsets if b > a])
-        sampled_scores = base_scores[sampled]
-        take_max = min(max(KS), len(sampled))
-        order_local = randomized_top_order(sampled_scores, take_max, rng)
+        sampled_score_codes = base_score_codes[sampled]
         y = y_base[sampled]
-        selected_y = y[order_local]
-        cumulative = np.cumsum(selected_y)
+        replicate_metrics = expected_metrics_from_codes(y, sampled_score_codes, KS, int(base_score_codes.max()) + 1)
         positives = int(y.sum())
         for k in KS:
-            take = min(k, len(sampled))
-            hits = int(cumulative[take - 1]) if take else 0
-            recall = hits / positives if positives else np.nan
-            precision = hits / take if take else np.nan
+            recall, precision, _ = replicate_metrics[k]
             values[k][0].append(recall)
             values[k][1].append(precision)
     out = {}
@@ -181,6 +176,8 @@ def ranking_outputs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             y = g["kev_30d_label"].to_numpy(dtype=np.int8)
             s1 = g[methods_for_test[first]].to_numpy(dtype=float)
             s2 = g[methods_for_test[second]].to_numpy(dtype=float)
+            score_codes1 = np.unique(s1, return_inverse=True)[1].astype(np.uint32)
+            score_codes2 = np.unique(s2, return_inverse=True)[1].astype(np.uint32)
             rng = np.random.default_rng(SEED + len(label) + (0 if date_label == "POOLED" else int(date_label.replace("-", ""))))
             date_offsets = []
             start = 0
@@ -194,16 +191,12 @@ def ranking_outputs(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             for _ in range(N_BOOT):
                 idx = np.concatenate([rng.integers(a, b, size=b-a) for a,b in date_offsets if b>a])
                 b_y = y[idx]
-                sampled_s1, sampled_s2 = s1[idx], s2[idx]
-                max_k = min(max(KS), len(idx))
-                top1 = randomized_top_order(sampled_s1, max_k, rng)
-                top2 = randomized_top_order(sampled_s2, max_k, rng)
-                cum1, cum2 = np.cumsum(b_y[top1]), np.cumsum(b_y[top2])
-                denom = int(b_y.sum())
+                sampled_s1, sampled_s2 = score_codes1[idx], score_codes2[idx]
+                metrics1 = expected_metrics_from_codes(b_y, sampled_s1, KS, int(score_codes1.max()) + 1)
+                metrics2 = expected_metrics_from_codes(b_y, sampled_s2, KS, int(score_codes2.max()) + 1)
                 for k in KS:
-                    take = min(k, len(idx))
-                    recall1 = cum1[take - 1] / denom if denom else np.nan
-                    recall2 = cum2[take - 1] / denom if denom else np.nan
+                    recall1 = metrics1[k][0]
+                    recall2 = metrics2[k][0]
                     boot_diffs[k].append(recall1 - recall2)
             for k in KS:
                 diff = metric_at_k(y, s1, k)[0] - metric_at_k(y, s2, k)[0]

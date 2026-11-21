@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from scripts.ranking_utils import expected_recall_precision_at_k, rank_priority_rows
+from scripts.ranking_utils import expected_metrics_from_codes, expected_recall_precision_at_k, rank_priority_rows
 
 
 class ExpectedRankingMetricTests(unittest.TestCase):
@@ -30,6 +30,16 @@ class ExpectedRankingMetricTests(unittest.TestCase):
         self.assertAlmostEqual(recall, 0.25)
         self.assertAlmostEqual(precision, 0.25)
         self.assertEqual(picks, 2)
+
+    def test_group_code_bootstrap_metrics_match_score_helper(self):
+        y = np.array([0, 1, 0, 1])
+        score = np.array([3.0, 2.0, 2.0, 1.0])
+        codes = np.unique(score, return_inverse=True)[1]
+        expected = expected_recall_precision_at_k(y, score, [1, 2, 4])
+        got = expected_metrics_from_codes(y, codes, [1, 2, 4], len(np.unique(score)))
+        for k in expected:
+            np.testing.assert_allclose(got[k][:2], expected[k][:2])
+            self.assertEqual(got[k][2], expected[k][2])
 
     def test_all_nan_scores(self):
         result = expected_recall_precision_at_k(np.array([1, 0]), np.array([np.nan, np.nan]), [1, 2])

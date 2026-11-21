@@ -44,7 +44,7 @@ epss_percentile_at_decision,FIRST EPSS,numeric,Dated EPSS percentile (0-1),Yes i
 decision_date,Derived,date,Fixed decision snapshot date,No
 kev_30d_label,Derived from KEV,binary,1 if added within 30 days after decision date,Target only
 epss_model_version,FIRST EPSS,categorical,Model version embedded in dated file,No
-has_epss_at_decision,Derived from EPSS,binary,Decision-date EPSS availability flag,Yes
+has_epss_at_decision,Derived from EPSS,binary,Decision-date EPSS availability flag,No
 cvss_version_asof,NVD change history,categorical,CVSS version available by the decision date,Yes
 cvss_score_asof,NVD change history,numeric,CVSS base score reconstructed from the latest vector recorded by the decision date,Yes
 cvss_severity_asof,NVD,categorical,Cvss severity asof,Yes

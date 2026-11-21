@@ -79,15 +79,34 @@ def rank_priority_rows(
     return selected
 
 
-def randomized_top_order(score: np.ndarray, k: int, rng: np.random.Generator) -> np.ndarray:
-    """Return top-k row indices with a fresh uniform random order inside ties."""
-    scores = np.asarray(score, dtype=float)
-    take = min(max(int(k), 0), len(scores))
-    if take == 0:
-        return np.empty(0, dtype=np.int64)
-    tie_key = rng.random(len(scores))
-    keys = np.empty(len(scores), dtype=[("score", np.float64), ("tie", np.float64)])
-    keys["score"] = scores
-    keys["tie"] = tie_key
-    selected = np.argpartition(keys, len(scores) - take, order=("score", "tie"))[-take:]
-    return selected[np.lexsort((tie_key[selected], -scores[selected]))]
+def expected_metrics_from_codes(
+    y: np.ndarray, score_codes: np.ndarray, ks: Iterable[int], n_groups: int
+) -> dict[int, tuple[float, float, int]]:
+    """Compute exact expected top-k metrics from ascending score-group codes."""
+    labels = np.asarray(y, dtype=float)
+    codes = np.asarray(score_codes, dtype=np.int64)
+    if labels.ndim != 1 or codes.ndim != 1 or len(labels) != len(codes):
+        raise ValueError("y and score_codes must be one-dimensional arrays of equal length")
+    if not len(codes):
+        return {int(k): (float("nan"), float("nan"), 0) for k in ks}
+    counts = np.bincount(codes, minlength=n_groups)
+    positive_counts = np.bincount(codes, weights=labels, minlength=n_groups)
+    reverse_counts = np.cumsum(counts[::-1])
+    reverse_positives = np.cumsum(positive_counts[::-1])
+    total_positives = float(labels.sum())
+    result = {}
+    for raw_k in ks:
+        k = int(raw_k)
+        if k <= 0:
+            raise ValueError("Each K must be a positive integer")
+        take = min(k, len(codes))
+        group_from_top = int(np.searchsorted(reverse_counts, take, side="left"))
+        above = int(reverse_counts[group_from_top - 1]) if group_from_top else 0
+        hits_above = float(reverse_positives[group_from_top - 1]) if group_from_top else 0.0
+        score_group = n_groups - 1 - group_from_top
+        group_size = int(counts[score_group])
+        group_positives = float(positive_counts[score_group])
+        expected_hits = hits_above + (take - above) * group_positives / group_size
+        recall = expected_hits / total_positives if total_positives else float("nan")
+        result[k] = (recall, expected_hits / take, take)
+    return result
