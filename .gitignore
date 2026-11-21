@@ -22,3 +22,4 @@ Thumbs.db
 node_modules/
 scripts/node_modules/
 .chart-data-*/
+outputs_submitted_v1/
